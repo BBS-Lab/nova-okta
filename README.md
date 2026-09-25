@@ -31,10 +31,10 @@ Both service providers are auto-discovered.
 
 In your Okta admin, create an **OIDC / Web** application and set:
 
-- **Sign-in redirect URI**: `{APP_URL}/{nova-path}/okta/callback`
-- **Sign-out redirect URI**: `{APP_URL}/{nova-path}/okta/callback/logout`
+- **Sign-in redirect URI**: `{APP_URL}/{nova-path}/authorization-code/callback`
+- **Sign-out redirect URI**: `{APP_URL}/{nova-path}/authorization-code/callback/logout`
 
-where `{nova-path}` is your `config('nova.path')` (e.g. `nova`, or empty when Nova is mounted at the root).
+where `{nova-path}` is your `config('nova.path')` (e.g. `nova`, or empty when Nova is mounted at the root). These paths are configurable — see [Routes](#routes).
 
 ### Credentials
 
@@ -44,7 +44,7 @@ Add the `okta` block to `config/services.php` (the package intentionally does no
 'okta' => [
     'client_id' => env('OKTA_CLIENT_ID'),
     'client_secret' => env('OKTA_CLIENT_SECRET'),
-    'redirect' => env('OKTA_REDIRECT_URI'), // optional — derived from the okta/callback route
+    'redirect' => env('OKTA_REDIRECT_URI'), // optional — derived from the callback route
     'base_url' => env('OKTA_BASE_URL'),
     // 'auth_server_id' => env('OKTA_AUTH_SERVER_ID'), // optional custom authorization server
 ],
@@ -59,7 +59,7 @@ OKTA_BASE_URL=https://your-org.okta.com
 `OKTA_BASE_URL` is the bare org URL (no `/oauth2`). Keep the `redirect` key present (it may be `null`).
 
 **`OKTA_REDIRECT_URI` is optional.** The redirect URI is a route this package generates (under your
-Nova path), so when it is not set the package derives it from the `okta/callback` route
+Nova path), so when it is not set the package derives it from the callback route
 automatically — you only declare the matching **Sign-in redirect URI** in your Okta application. Set
 it only to override the derived URL (e.g. behind a reverse proxy).
 
@@ -87,8 +87,8 @@ return [
 
 ### Okta behaviour (from the base)
 
-SSO logout, verified-email enforcement and stable-identifier matching live in the base package's
-`config/okta.php`:
+The route paths, SSO logout, verified-email enforcement and stable-identifier matching live in the
+base package's `config/okta.php`:
 
 ```bash
 php artisan vendor:publish --tag=okta-config
@@ -97,6 +97,16 @@ php artisan vendor:publish --tag=okta-config
 ```php
 // config/okta.php
 return [
+    // Route paths, relative to the Nova path. Change these to move the endpoints
+    // (update the Sign-in/Sign-out redirect URIs in Okta accordingly); the route
+    // names never change.
+    'paths' => [
+        'login' => env('OKTA_LOGIN_PATH', 'authorization-code/redirect'),
+        'callback' => env('OKTA_CALLBACK_PATH', 'authorization-code/callback'),
+        'logout' => env('OKTA_LOGOUT_PATH', 'authorization-code/logout'),
+        'callback_logout' => env('OKTA_CALLBACK_LOGOUT_PATH', 'authorization-code/callback/logout'),
+    ],
+
     'sso_logout' => env('OKTA_SSO_LOGOUT', true),
     'require_verified_email' => env('OKTA_REQUIRE_VERIFIED_EMAIL', true),
     'identifier' => [
@@ -159,18 +169,18 @@ reusable gate. A denied login flashes the error to the custom login screen.
 The base registers the Okta Socialite driver and mounts these routes; this package adds the login
 override and the 2FA bridge. **Every URI is prefixed by your Nova path** — `config('nova.path')`
 (`nova` by default), read at boot — so with Nova mounted at `/backend-panel` the callback is
-`/backend-panel/okta/callback`. Below, `{nova-path}` stands for that prefix:
+`/backend-panel/authorization-code/callback`. Below, `{nova-path}` stands for that prefix:
 
-| Route (URI) | Name | Purpose |
+| Route (default URI) | Name | Purpose |
 |-------------|------|---------|
 | `GET {nova-path}/login` | `nova.pages.login` | Overrides Nova's login GET with the package screen (POST stays Fortify's `nova.login`). |
-| `GET {nova-path}/okta/login` | `nova-okta.login` | Redirects to Okta (start login). |
-| `GET {nova-path}/okta/callback` | `nova-okta.callback` | Login callback — resolves the user and logs them in (the Sign-in redirect URI target). |
-| `GET {nova-path}/okta/logout` | `nova-okta.logout` | Logs out locally, and — when `sso_logout` is on — via Okta's OIDC end-session (start logout). |
-| `GET {nova-path}/okta/callback/logout` | `nova-okta.callback.logout` | Okta's post-logout landing (sign-out redirect). |
+| `GET {nova-path}/authorization-code/redirect` | `nova-okta.login` | Redirects to Okta (start login). |
+| `GET {nova-path}/authorization-code/callback` | `nova-okta.callback` | Login callback — resolves the user and logs them in (the Sign-in redirect URI target). |
+| `GET {nova-path}/authorization-code/logout` | `nova-okta.logout` | Logs out locally, and — when `sso_logout` is on — via Okta's OIDC end-session (start logout). |
+| `GET {nova-path}/authorization-code/callback/logout` | `nova-okta.callback.logout` | Okta's post-logout landing (sign-out redirect). |
 | `GET {nova-path}/okta/two-factor-challenge` | `two-factor.login` | Redirects Fortify's 2FA step to Nova's own challenge (when enabled). |
 
-The route **names** are stable whatever the path, so reference them with `route('nova-okta.login')` rather than hard-coding a URI. When Nova is mounted at the root, `{nova-path}` is empty (e.g. `/okta/callback`).
+The four `authorization-code/*` paths are **configurable** via the base package's `okta.paths` config (below); the route **names** are stable whatever the path, so reference them with `route('nova-okta.login')` rather than hard-coding a URI. When Nova is mounted at the root, `{nova-path}` is empty (e.g. `/authorization-code/callback`).
 
 The 2FA bridge is a **redirect** to Nova's native `nova.two-factor.login` (not a re-registration of its URI), so Nova keeps its middleware and the bridge is `route:cache`-safe.
 

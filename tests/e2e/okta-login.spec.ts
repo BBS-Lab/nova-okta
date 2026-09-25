@@ -5,18 +5,18 @@ import { expect, test } from '@playwright/test';
 // controls before handing off to Okta).
 
 test.describe('Okta login on Nova', () => {
-    test('the Nova login screen shows the Okta button linking to okta/login', async ({ page }) => {
+    test('the Nova login screen shows the Okta button linking to the login route', async ({ page }) => {
         await page.goto('/nova/login');
 
         const button = page.locator('#okta-signin-submit');
 
         await expect(button).toBeVisible();
         await expect(button).toContainText('Log In with Okta');
-        await expect(button).toHaveAttribute('href', /\/nova\/okta\/login$/);
+        await expect(button).toHaveAttribute('href', /\/nova\/authorization-code\/redirect$/);
     });
 
-    test('okta/login starts the Okta OIDC authorization redirect', async ({ request }) => {
-        const response = await request.get('/nova/okta/login', { maxRedirects: 0 });
+    test('the login route starts the Okta OIDC authorization redirect', async ({ request }) => {
+        const response = await request.get('/nova/authorization-code/redirect', { maxRedirects: 0 });
 
         expect(response.status()).toBe(302);
         expect(response.headers()['location']).toContain('example.okta.com');

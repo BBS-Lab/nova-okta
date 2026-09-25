@@ -72,11 +72,11 @@ it('derives the redirect_uri from the nova callback route when none is configure
 });
 
 it('honours an explicitly configured redirect_uri', function (): void {
-    config(['services.okta.redirect' => 'https://proxied.example/nova/okta/callback']);
+    config(['services.okta.redirect' => 'https://proxied.example/nova/authorization-code/callback']);
 
     $location = (string) $this->get(route('nova-okta.login'))->headers->get('Location');
 
-    expect($location)->toContain('redirect_uri='.urlencode('https://proxied.example/nova/okta/callback'));
+    expect($location)->toContain('redirect_uri='.urlencode('https://proxied.example/nova/authorization-code/callback'));
 });
 
 it('logs in a resolved user on callback and stores the id token', function (): void {

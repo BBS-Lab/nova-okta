@@ -32,10 +32,10 @@ it('applies the web middleware to the sso routes', function (): void {
 });
 
 it('prefixes every base okta route with the nova path', function (): void {
-    expect(Route::getRoutes()->getByName('nova-okta.login')->uri())->toBe('nova/okta/login')
-        ->and(Route::getRoutes()->getByName('nova-okta.callback')->uri())->toBe('nova/okta/callback')
-        ->and(Route::getRoutes()->getByName('nova-okta.logout')->uri())->toBe('nova/okta/logout')
-        ->and(Route::getRoutes()->getByName('nova-okta.callback.logout')->uri())->toBe('nova/okta/callback/logout');
+    expect(Route::getRoutes()->getByName('nova-okta.login')->uri())->toBe('nova/authorization-code/redirect')
+        ->and(Route::getRoutes()->getByName('nova-okta.callback')->uri())->toBe('nova/authorization-code/callback')
+        ->and(Route::getRoutes()->getByName('nova-okta.logout')->uri())->toBe('nova/authorization-code/logout')
+        ->and(Route::getRoutes()->getByName('nova-okta.callback.logout')->uri())->toBe('nova/authorization-code/callback/logout');
 });
 
 it('registers the login override under the nova path with web middleware', function (): void {
