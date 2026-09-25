@@ -2,6 +2,27 @@
 
 All notable changes to `bbs-lab/nova-okta` will be documented in this file.
 
+## v2.0.0 - 2026-09-25
+
+### ⚠️ Breaking
+
+- Requires [`bbs-lab/laravel-okta` v2.0](https://github.com/BBS-Lab/laravel-okta/releases/tag/v2.0.0), which **changes the default Okta route paths** from `okta/*` to `authorization-code/*`:
+
+  | Purpose | Before | After (default) |
+  |---------|--------|-----------------|
+  | Login | `{nova-path}/okta/login` | `{nova-path}/authorization-code/redirect` |
+  | Callback (redirect URI) | `{nova-path}/okta/callback` | `{nova-path}/authorization-code/callback` |
+  | Logout | `{nova-path}/okta/logout` | `{nova-path}/authorization-code/logout` |
+  | Post-logout landing | `{nova-path}/okta/callback/logout` | `{nova-path}/authorization-code/callback/logout` |
+
+  **Action required:** update your Okta application's **Sign-in** and **Sign-out redirect URIs** in the Okta admin console, or logins fail with a `redirect_uri` mismatch (400). An explicit `services.{driver}.redirect` still wins.
+
+- The route **names are unchanged** (`nova-okta.login`, `.callback`, `.logout`, `.callback.logout`), so `route()` callers, the login button and the derived redirect URI keep working. The `two-factor.login` bridge (`okta/two-factor-challenge`) is unchanged.
+
+### ✨ Added
+
+- The Okta route paths are **configurable** — for Nova, via the base `okta.paths.*` config (env `OKTA_LOGIN_PATH`, `OKTA_CALLBACK_PATH`, `OKTA_LOGOUT_PATH`, `OKTA_CALLBACK_LOGOUT_PATH`). `NovaOktaPanel` inherits this from `ConfigOktaPanel`.
+
 ## v1.0.0 - 2026-09-23
 
 Okta SSO for Laravel Nova — the Nova adapter for [bbs-lab/laravel-okta](https://github.com/BBS-Lab/laravel-okta).

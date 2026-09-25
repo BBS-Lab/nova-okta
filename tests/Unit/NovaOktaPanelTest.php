@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use BBSLab\LaravelOkta\Enums\OktaRoute;
 use BBSLab\NovaOkta\Support\NovaOktaPanel;
 use Illuminate\Http\Request;
 use Laravel\Nova\Nova;
@@ -28,6 +29,24 @@ it('trims slashes from the nova path for the route prefix', function (): void {
 
 it('defaults the route prefix to the nova path', function (): void {
     expect((new NovaOktaPanel)->routePrefix())->toBe('nova');
+});
+
+it('mounts each okta route at its default authorization path', function (): void {
+    $panel = new NovaOktaPanel;
+
+    expect($panel->path(OktaRoute::Login))->toBe('authorization-code/redirect')
+        ->and($panel->path(OktaRoute::Callback))->toBe('authorization-code/callback')
+        ->and($panel->path(OktaRoute::Logout))->toBe('authorization-code/logout')
+        ->and($panel->path(OktaRoute::CallbackLogout))->toBe('authorization-code/callback/logout');
+});
+
+it('reads the okta route paths from config (per config for Nova)', function (): void {
+    config(['okta.paths.login' => 'sso/start', 'okta.paths.callback' => 'sso/cb']);
+
+    $panel = new NovaOktaPanel;
+
+    expect($panel->path(OktaRoute::Login))->toBe('sso/start')
+        ->and($panel->path(OktaRoute::Callback))->toBe('sso/cb');
 });
 
 it('delegates the home url to nova initial path', function (): void {

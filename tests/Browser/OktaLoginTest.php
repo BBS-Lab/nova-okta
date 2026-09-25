@@ -10,7 +10,7 @@ uses(RefreshDatabase::class);
  * Browser (Pest v4) coverage of the pre-redirect login UX. The full SSO
  * round-trip cannot be driven end to end without a real Okta org, so these
  * scenarios assert the Nova login screen renders the Okta button and that it
- * targets the okta/login route (which starts the OIDC redirect).
+ * targets the login route (which starts the OIDC redirect).
  */
 it('shows the Log In with Okta button on the Nova login screen', function (): void {
     $page = visit(route('nova.pages.login'));
