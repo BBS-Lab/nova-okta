@@ -32,7 +32,7 @@ Both service providers are auto-discovered.
 In your Okta admin, create an **OIDC / Web** application and set:
 
 - **Sign-in redirect URI**: `{APP_URL}/{nova-path}/authorization-code/callback`
-- **Sign-out redirect URI**: `{APP_URL}/{nova-path}/authorization-code/callback/logout`
+- **Sign-out redirect URI**: `{APP_URL}/{nova-path}/authorization-code/logout`
 
 where `{nova-path}` is your `config('nova.path')` (e.g. `nova`, or empty when Nova is mounted at the root). These paths are configurable — see [Routes](#routes).
 
@@ -103,8 +103,8 @@ return [
     'paths' => [
         'login' => env('OKTA_LOGIN_PATH', 'authorization-code/redirect'),
         'callback' => env('OKTA_CALLBACK_PATH', 'authorization-code/callback'),
-        'logout' => env('OKTA_LOGOUT_PATH', 'authorization-code/logout'),
-        'callback_logout' => env('OKTA_CALLBACK_LOGOUT_PATH', 'authorization-code/callback/logout'),
+        'logout' => env('OKTA_LOGOUT_PATH', 'authorization-code/logout/redirect'),
+        'callback_logout' => env('OKTA_CALLBACK_LOGOUT_PATH', 'authorization-code/logout'),
     ],
 
     'sso_logout' => env('OKTA_SSO_LOGOUT', true),
@@ -176,11 +176,13 @@ override and the 2FA bridge. **Every URI is prefixed by your Nova path** — `co
 | `GET {nova-path}/login` | `nova.pages.login` | Overrides Nova's login GET with the package screen (POST stays Fortify's `nova.login`). |
 | `GET {nova-path}/authorization-code/redirect` | `nova-okta.login` | Redirects to Okta (start login). |
 | `GET {nova-path}/authorization-code/callback` | `nova-okta.callback` | Login callback — resolves the user and logs them in (the Sign-in redirect URI target). |
-| `GET {nova-path}/authorization-code/logout` | `nova-okta.logout` | Logs out locally, and — when `sso_logout` is on — via Okta's OIDC end-session (start logout). |
-| `GET {nova-path}/authorization-code/callback/logout` | `nova-okta.callback.logout` | Okta's post-logout landing (sign-out redirect). |
+| `GET {nova-path}/authorization-code/logout/redirect` | `nova-okta.logout` | Logs out locally, and — when `sso_logout` is on — via Okta's OIDC end-session (start logout). |
+| `GET {nova-path}/authorization-code/logout` | `nova-okta.callback.logout` | Okta's post-logout landing (this is the Sign-out redirect URI target). |
 | `GET {nova-path}/okta/two-factor-challenge` | `two-factor.login` | Redirects Fortify's 2FA step to Nova's own challenge (when enabled). |
 
 The four `authorization-code/*` paths are **configurable** via the base package's `okta.paths` config (below); the route **names** are stable whatever the path, so reference them with `route('nova-okta.login')` rather than hard-coding a URI. When Nova is mounted at the root, `{nova-path}` is empty (e.g. `/authorization-code/callback`).
+
+> **Logout name↔URI inversion (by design).** `nova-okta.logout` *initiates* logout but mounts at the nested `authorization-code/logout/redirect`, while the post-logout landing `nova-okta.callback.logout` mounts at the short `authorization-code/logout` (the Okta sign-out redirect URI). Reference routes by name; do not swap the pairing.
 
 The 2FA bridge is a **redirect** to Nova's native `nova.two-factor.login` (not a re-registration of its URI), so Nova keeps its middleware and the bridge is `route:cache`-safe.
 
