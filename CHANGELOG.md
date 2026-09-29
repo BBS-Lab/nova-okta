@@ -2,6 +2,21 @@
 
 All notable changes to `bbs-lab/nova-okta` will be documented in this file.
 
+## v3.0.0 - 2026-09-29
+
+### ⚠️ Breaking
+
+- Requires [`bbs-lab/laravel-okta` v3.0](https://github.com/BBS-Lab/laravel-okta/releases/tag/v3.0.0), which **aligns the default logout paths on the common Okta convention**: the sign-out redirect URI now defaults to `{nova-path}/authorization-code/logout` (was `…/authorization-code/callback/logout`), and the RP-initiated initiator moves to `{nova-path}/authorization-code/logout/redirect` (was `…/authorization-code/logout`).
+
+  | Purpose | v2.0.0 | v3.0.0 (default) |
+  |---------|--------|------------------|
+  | Post-logout landing = Sign-out redirect URI (`nova-okta.callback.logout`) | `{nova-path}/authorization-code/callback/logout` | `{nova-path}/authorization-code/logout` |
+  | Logout initiator (`nova-okta.logout`) | `{nova-path}/authorization-code/logout` | `{nova-path}/authorization-code/logout/redirect` |
+
+  **Upgrading:** from v1.x or a standard Okta app already whitelisting `authorization-code/logout`, nothing to do. From v2.0.0, point your Okta **Sign-out redirect URI** at `{nova-path}/authorization-code/logout` (or pin `OKTA_CALLBACK_LOGOUT_PATH`).
+
+- Route **names are unchanged** (`nova-okta.logout`, `nova-okta.callback.logout`), so `route()` callers, the login/logout wiring and the `two-factor.login` bridge keep working; `route('nova-okta.logout')` still initiates logout. Deliberate name↔URI inversion, documented in the base package.
+
 ## v2.0.0 - 2026-09-25
 
 ### ⚠️ Breaking
